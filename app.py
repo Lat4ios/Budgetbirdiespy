@@ -9,19 +9,33 @@ app = Flask(__name__)
 app.secret_key = 'golf-store-secret-key-2025'
 app.permanent_session_lifetime = timedelta(days=7)
 
-# Path to data file
-DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'products.json')
+# ==================== PERSISTENT STORAGE SETUP ====================
+# This ensures your data survives restarts and sleeps on Render
+
+# Determine if running on Render or locally
+if os.environ.get('RENDER'):
+    # Running on Render - use persistent directory
+    DATA_DIR = '/opt/render/project/data'
+else:
+    # Running locally - use local data folder
+    DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+
+# Create directory if it doesn't exist
+os.makedirs(DATA_DIR, exist_ok=True)
+
+# Set data file paths
+PRODUCTS_FILE = os.path.join(DATA_DIR, 'products.json')
+CART_FILE = os.path.join(DATA_DIR, 'carts.json')
 
 # Admin credentials
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'golfadmin123'
 
-# Ensure data directory exists
-os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
+# ==================== INITIALIZE DATA FILES ====================
 
-# Initialize data file if it doesn't exist
+# Initialize products.json if it doesn't exist
 def init_data_file():
-    if not os.path.exists(DATA_FILE):
+    if not os.path.exists(PRODUCTS_FILE):
         initial_data = {
             "products": [
                 {"id": 1, "name": "Premium Golf Balls (12 Pack)", "desc": "Tour-quality golf balls with exceptional distance and spin control.", "price": 2299, "emoji": "⚪", "badge": "Best Seller", "inStock": True},
@@ -38,28 +52,30 @@ def init_data_file():
                 {"id": 4, "icon": "💳", "title": "Flexible Payments", "description": "We accept COD, Bank Transfer, and E-Wallets"}
             ],
             "site_settings": {
-                "hero_title": "Elevate Your Golf Game",
-                "hero_subtitle": "Gear up for your next round with premium equipment trusted by pros",
-                "contact_email": "support@fairwaygolf.com",
-                "contact_phone": "(02) 1234 5678",
-                "facebook_contact": "John Christian Llamas"
+                "hero_title": "Budget Birdies",
+                "hero_subtitle": "Get quality golf balls for an affordable price!!!",
+                "contact_email": "Jcthekid1221@gmail.com",
+                "contact_phone": "0952 443 7280",
+                "facebook_contact": "Budget Birdies",
+                "company_name": "Budget Birdies",
+                "footer_tagline": "Premium golf equipment for players who demand the best."
             }
         }
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
             json.dump(initial_data, f, indent=2, ensure_ascii=False)
 
 init_data_file()
 
-# Load data from JSON
+# ==================== DATA FUNCTIONS ====================
+
 def load_data():
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+    with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def save_data(data):
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+    with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
-# Get products from JSON
 def get_products():
     data = load_data()
     return data['products']
@@ -79,7 +95,40 @@ def get_site_settings():
     data = load_data()
     return data['site_settings']
 
-# Custom Jinja2 filter for number formatting
+# ==================== PERSISTENT CART FUNCTIONS ====================
+
+def get_user_id():
+    """Get or create a unique user ID that persists"""
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+    return session['user_id']
+
+def save_cart_to_file(user_id, cart):
+    """Save cart to persistent file storage"""
+    carts = {}
+    if os.path.exists(CART_FILE):
+        try:
+            with open(CART_FILE, 'r', encoding='utf-8') as f:
+                carts = json.load(f)
+        except:
+            carts = {}
+    carts[user_id] = cart
+    with open(CART_FILE, 'w', encoding='utf-8') as f:
+        json.dump(carts, f, indent=2)
+
+def load_cart_from_file(user_id):
+    """Load cart from persistent file storage"""
+    if os.path.exists(CART_FILE):
+        try:
+            with open(CART_FILE, 'r', encoding='utf-8') as f:
+                carts = json.load(f)
+                return carts.get(user_id, {})
+        except:
+            return {}
+    return {}
+
+# ==================== CUSTOM JINJA FILTERS ====================
+
 @app.template_filter('format_currency')
 def format_currency(value):
     try:
@@ -87,12 +136,14 @@ def format_currency(value):
     except (ValueError, TypeError):
         return str(value)
 
-# Make settings available to all templates
+# ==================== CONTEXT PROCESSOR ====================
+
 @app.context_processor
 def inject_settings():
     return dict(settings=get_site_settings())
 
-# Admin required decorator
+# ==================== ADMIN DECORATOR ====================
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -119,13 +170,10 @@ def add_to_cart():
     product_id = int(request.form.get('product_id'))
     quantity = int(request.form.get('quantity', 1))
     
-    if 'cart' not in session:
-        session['cart'] = {}
-    
-    cart = dict(session['cart'])
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
     cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
-    session['cart'] = cart
-    session.modified = True
+    save_cart_to_file(user_id, cart)
     
     return redirect(request.referrer or url_for('products'))
 
@@ -134,15 +182,15 @@ def update_cart():
     product_id = str(request.form.get('product_id'))
     quantity = int(request.form.get('quantity', 0))
     
-    cart = dict(session.get('cart', {}))
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
     
     if quantity <= 0:
         cart.pop(product_id, None)
     else:
         cart[product_id] = quantity
     
-    session['cart'] = cart
-    session.modified = True
+    save_cart_to_file(user_id, cart)
     
     return redirect(url_for('cart'))
 
@@ -150,20 +198,21 @@ def update_cart():
 def remove_from_cart():
     product_id = str(request.form.get('product_id'))
     
-    cart = dict(session.get('cart', {}))
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
     cart.pop(product_id, None)
-    session['cart'] = cart
-    session.modified = True
+    save_cart_to_file(user_id, cart)
     
     return redirect(url_for('cart'))
 
 @app.route('/cart')
 def cart():
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
     cart_items = []
     total = 0
     
-    cart_data = session.get('cart', {})
-    for product_id, quantity in cart_data.items():
+    for product_id, quantity in cart.items():
         product = get_product_by_id(int(product_id))
         if product and product.get('inStock', True):
             item_total = product["price"] * quantity
@@ -178,11 +227,12 @@ def cart():
 
 @app.route('/checkout')
 def checkout():
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
     cart_items = []
     total = 0
     
-    cart_data = session.get('cart', {})
-    for product_id, quantity in cart_data.items():
+    for product_id, quantity in cart.items():
         product = get_product_by_id(int(product_id))
         if product and product.get('inStock', True):
             item_total = product["price"] * quantity
@@ -200,11 +250,12 @@ def checkout():
 
 @app.route('/place-order', methods=['POST'])
 def place_order():
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
     order_items = []
     total = 0
     
-    cart_data = session.get('cart', {})
-    for product_id, quantity in cart_data.items():
+    for product_id, quantity in cart.items():
         product = get_product_by_id(int(product_id))
         if product:
             item_total = product["price"] * quantity
@@ -233,8 +284,9 @@ def place_order():
     
     session['last_order'] = order
     session.modified = True
-    session['cart'] = {}
-    session.modified = True
+    
+    # Clear the cart after order
+    save_cart_to_file(user_id, {})
     
     return redirect(url_for('confirmation'))
 
@@ -253,8 +305,15 @@ def confirmation():
 
 @app.route('/api/cart-count')
 def cart_count():
-    count = sum(session.get('cart', {}).values())
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
+    count = sum(cart.values())
     return jsonify({"count": count})
+
+@app.route('/api/health')
+def health():
+    """Health check endpoint for uptime monitoring"""
+    return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
 
 # ==================== ADMIN ROUTES ====================
 
@@ -389,7 +448,9 @@ def admin_settings():
             "hero_subtitle": request.form.get('hero_subtitle'),
             "contact_email": request.form.get('contact_email'),
             "contact_phone": request.form.get('contact_phone'),
-            "facebook_contact": request.form.get('facebook_contact')
+            "facebook_contact": request.form.get('facebook_contact'),
+            "company_name": request.form.get('company_name'),
+            "footer_tagline": request.form.get('footer_tagline')
         }
         save_data(data)
         flash('Settings updated successfully!', 'success')
@@ -397,8 +458,23 @@ def admin_settings():
     
     return render_template('admin/settings.html', settings=data['site_settings'])
 
+# ==================== DEBUG ROUTE ====================
+
+@app.route('/debug-session')
+def debug_session():
+    """Debug endpoint to check persistent storage"""
+    user_id = get_user_id()
+    cart = load_cart_from_file(user_id)
+    return jsonify({
+        "user_id": user_id,
+        "cart": cart,
+        "data_dir": DATA_DIR,
+        "products_file_exists": os.path.exists(PRODUCTS_FILE),
+        "cart_file_exists": os.path.exists(CART_FILE)
+    })
+
 # ==================== PRODUCTION SERVER ====================
+
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
