@@ -1,22 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}Fairway Golf | Home{% endblock %}
+{% block title %}Budget Birdies | Home{% endblock %}
 
 {% block content %}
 <section class="hero">
   <div class="hero-content">
     <div class="hero-badge">Since 2025</div>
-    <h1 class="hero-title">{{ settings.hero_title }}<br><span class="hero-highlight">Golf Game</span></h1>
+    <h1 class="hero-title">Budget Birdies</h1>
     <p class="hero-subtitle">{{ settings.hero_subtitle }}</p>
     <div class="hero-buttons">
       <a href="{{ url_for('products') }}" class="btn-primary">Shop Now →</a>
       <a href="#features" class="btn-secondary">Learn More</a>
     </div>
-  </div>
-  <div class="hero-image">
-    <div class="floating-icon">🏌️</div>
-    <div class="floating-icon delay-1">⛳</div>
-    <div class="floating-icon delay-2">🏆</div>
   </div>
 </section>
 
@@ -70,7 +65,7 @@
 <section class="cta-section">
   <div class="cta-content">
     <h2>Ready to upgrade your gear?</h2>
-    <p>Join thousands of satisfied golfers who trust Fairway Golf</p>
+    <p>Join thousands of satisfied golfers who trust Budget Birdies</p>
     <a href="{{ url_for('products') }}" class="btn-primary btn-large">Shop Collection →</a>
   </div>
 </section>
