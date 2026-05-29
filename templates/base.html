@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Fairway Golf{% endblock %}</title>
+  <title>{% block title %}Budget Birdies{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -12,7 +12,7 @@
     <div class="nav-container">
       <div class="logo">
         <span class="logo-icon">⛳</span>
-        <span class="logo-text">Fairway<span class="logo-highlight">Golf</span></span>
+        <span class="logo-text">Budget<span class="logo-highlight">Birdies</span></span>
       </div>
       <div class="nav-links">
         <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Home</a>
@@ -32,8 +32,8 @@
   <footer class="footer">
     <div class="footer-content">
       <div class="footer-section">
-        <h4>Fairway Golf</h4>
-        <p>Premium golf equipment for players who demand the best.</p>
+        <h4>{{ settings.company_name | default('Budget Birdies') }}</h4>
+        <p>{{ settings.footer_tagline | default('Premium golf equipment for players who demand the best.') }}</p>
       </div>
       <div class="footer-section">
         <h4>Quick Links</h4>
@@ -48,7 +48,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2025 Fairway Golf. All rights reserved.</p>
+      <p>© 2025 {{ settings.company_name | default('Budget Birdies') }}. All rights reserved.</p>
     </div>
   </footer>
 
