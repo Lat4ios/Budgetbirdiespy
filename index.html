@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Budget Birdies | Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">Since 2025</div>
+    <h1 class="hero-title">Budget Birdies</h1>
+    <p class="hero-subtitle">{{ settings.hero_subtitle }}</p>
+    <div class="hero-buttons">
+      <a href="{{ url_for('products') }}" class="btn-primary">Shop Now →</a>
+      <a href="#features" class="btn-secondary">Learn More</a>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <h2 class="section-title">Why Shop With Us?</h2>
+    <div class="features-grid">
+      {% for feature in features %}
+      <div class="feature-card">
+        <div class="feature-icon">{{ feature.icon }}</div>
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.description }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="featured-products">
+  <div class="container">
+    <h2 class="section-title">Featured Collection</h2>
+    <p class="section-subtitle">Hand-picked gear for the modern golfer</p>
+    <div class="products-grid">
+      {% for product in products %}
+      <div class="product-card">
+        {% if product.badge %}
+        <div class="product-badge {{ product.badge|lower|replace(' ', '-') }}">{{ product.badge }}</div>
+        {% endif %}
+        <div class="product-image">{{ product.emoji }}</div>
+        <h3 class="product-title">{{ product.name }}</h3>
+        <p class="product-desc">{{ product.desc[:60] }}...</p>
+        <div class="product-price">₱{{ product.price|format_currency }}</div>
+        {% if product.inStock %}
+        <form method="POST" action="{{ url_for('add_to_cart') }}">
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+          <input type="hidden" name="quantity" value="1">
+          <button type="submit" class="btn-add">Add to Cart</button>
+        </form>
+        {% else %}
+        <button class="btn-add" disabled style="background: #ccc;">Out of Stock</button>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="view-all">
+      <a href="{{ url_for('products') }}" class="btn-outline">View All Products →</a>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="cta-content">
+    <h2>Ready to upgrade your gear?</h2>
+    <p>Join thousands of satisfied golfers who trust Budget Birdies</p>
+    <a href="{{ url_for('products') }}" class="btn-primary btn-large">Shop Collection →</a>
+  </div>
+</section>
+{% endblock %}
