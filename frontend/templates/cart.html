@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Fairway Golf | Cart{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1>Shopping Cart</h1>
+</section>
+
+<section class="cart-section">
+  {% if cart_items %}
+    <div class="cart-items">
+      {% for item in cart_items %}
+      <div class="cart-item">
+        <div class="cart-item-image">{{ item.product.emoji }}</div>
+        <div class="cart-item-details">
+          <h3>{{ item.product.name }}</h3>
+          <p class="cart-item-desc">{{ item.product.desc[:80] }}...</p>
+          <form method="POST" action="{{ url_for('remove_from_cart') }}" style="display: inline;">
+            <input type="hidden" name="product_id" value="{{ item.product.id }}">
+            <button type="submit" class="remove-link">Remove</button>
+          </form>
+        </div>
+        <div class="cart-item-price">
+          <div>₱{{ item.product.price|format_currency }} each</div>
+          <form method="POST" action="{{ url_for('update_cart') }}">
+            <input type="hidden" name="product_id" value="{{ item.product.id }}">
+            <label>Qty:</label>
+            <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="10" style="width: 60px;" onchange="this.form.submit()">
+          </form>
+          <div class="item-total">₱{{ item.item_total|format_currency }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    
+    <div class="cart-summary">
+      <div class="cart-total">
+        <span>Total:</span>
+        <span>₱{{ total|format_currency }}</span>
+      </div>
+      <a href="{{ url_for('checkout') }}" class="btn-checkout">Proceed to Checkout →</a>
+      <a href="{{ url_for('products') }}" class="btn-continue">Continue Shopping</a>
+    </div>
+  {% else %}
+    <div class="empty-cart">
+      <div class="empty-cart-icon">🛒</div>
+      <h3>Your cart is empty</h3>
+      <p>Add some premium golf gear to get started!</p>
+      <a href="{{ url_for('products') }}" class="btn-primary">Browse Products →</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

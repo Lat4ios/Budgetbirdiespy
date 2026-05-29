@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Fairway Golf | Products{% endblock %}
+
+{% block content %}
+<section class="products-hero">
+  <div class="container">
+    <h1>Our Collection</h1>
+    <p>Premium golf equipment for every skill level</p>
+  </div>
+</section>
+
+<section class="products-main">
+  <div class="container">
+    <div class="products-header">
+      <h2>All Products</h2>
+      <div class="products-count">{{ products|length }} items</div>
+    </div>
+    <div class="products-grid">
+      {% for product in products %}
+      <div class="product-card">
+        {% if product.badge %}
+        <div class="product-badge {{ product.badge|lower|replace(' ', '-') }}">{{ product.badge }}</div>
+        {% endif %}
+        <div class="product-image">{{ product.emoji }}</div>
+        <h3 class="product-title">{{ product.name }}</h3>
+        <p class="product-desc">{{ product.desc }}</p>
+        <div class="product-price">₱{{ product.price|format_currency }}</div>
+        {% if product.inStock %}
+        <form method="POST" action="{{ url_for('add_to_cart') }}">
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+          <div class="quantity-selector">
+            <label>Qty:</label>
+            <input type="number" name="quantity" value="1" min="1" max="10">
+          </div>
+          <button type="submit" class="btn-add">Add to Cart</button>
+        </form>
+        {% else %}
+        <button class="btn-add" disabled style="background: #ccc;">Out of Stock</button>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
