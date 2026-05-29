@@ -14,10 +14,12 @@
     {"id": 4, "icon": "💳", "title": "Flexible Payments", "description": "We accept COD, Bank Transfer, and E-Wallets"}
   ],
   "site_settings": {
-    "hero_title": "Elevate Your Golf Game",
-    "hero_subtitle": "Gear up for your next round with premium equipment trusted by pros",
-    "contact_email": "support@fairwaygolf.com",
-    "contact_phone": "(02) 1234 5678",
-    "facebook_contact": "John Christian Llamas"
+    "hero_title": "Budget Birdies",
+    "hero_subtitle": "Get quality golf balls for an affordable price!!!",
+    "contact_email": "Jcthekid1221@gmail.com",
+    "contact_phone": "0952 443 7280",
+    "facebook_contact": "Budget Birdies",
+    "company_name": "Budget Birdies",
+    "footer_tagline": "Premium golf equipment for players who demand the best."
   }
 }
