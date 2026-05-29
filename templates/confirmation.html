@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Fairway Golf | Order Confirmed{% endblock %}
+
+{% block content %}
+<section class="confirmation-section">
+  <div class="confirmation-card">
+    <div class="confirmation-icon">✅</div>
+    <h1>Order Confirmed!</h1>
+    
+    <div class="order-number">
+      Order #{{ order.order_number }}
+    </div>
+
+    <div class="info-section">
+      <h3>📦 Shipping Information</h3>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Full Name:</span>
+          <span class="info-value">{{ order.full_name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Email:</span>
+          <span class="info-value">{{ order.email }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Phone:</span>
+          <span class="info-value">{{ order.phone }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Address:</span>
+          <span class="info-value">{{ order.address }}, {{ order.city }}, {{ order.province }} {{ order.zip }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h3>💳 Payment Method</h3>
+      <div class="payment-method-display">
+        {% if order.payment_method == 'COD' %}
+          <span class="payment-badge cod">Cash on Delivery (COD)</span>
+          <p class="payment-note">Pay when your order arrives</p>
+        {% elif order.payment_method == 'Bank Transfer' %}
+          <span class="payment-badge bank">Bank Transfer</span>
+          <p class="payment-note">BPI / BDO / Metrobank</p>
+        {% elif order.payment_method == 'E-Wallet' %}
+          <span class="payment-badge ewallet">E-Wallet</span>
+          <p class="payment-note">GCash / PayMaya / GrabPay</p>
+        {% else %}
+          <span class="payment-badge">{{ order.payment_method }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if order.order_notes %}
+    <div class="info-section">
+      <h3>📝 Order Notes</h3>
+      <div class="order-notes">{{ order.order_notes }}</div>
+    </div>
+    {% endif %}
+
+    <div class="order-summary-confirm">
+      <h3>🛒 Order Summary</h3>
+      <div class="summary-details">
+        {% set order_items = order.get('items', []) %}
+        {% if order_items and order_items|length > 0 %}
+          {% for item in order_items %}
+          <div class="summary-row">
+            <span>{{ item.name }} x{{ item.quantity }}</span>
+            <span>₱{{ item.item_total|format_currency }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="summary-row">
+            <span>No items in order</span>
+            <span>₱0</span>
+          </div>
+        {% endif %}
+        <div class="summary-row total">
+          <span><strong>Total Amount:</strong></span>
+          <span><strong>₱{{ order.get('total', 0)|format_currency }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-info">
+      <strong>📱 Please contact {{ settings.facebook_contact }} on Facebook</strong><br>
+      to settle your order.<br><br>
+      <a href="#" class="facebook-link" onclick="alert('Facebook: {{ settings.facebook_contact }}\nContact him to settle your payment.'); return false;">📘 Facebook {{ settings.facebook_contact }}</a>
+    </div>
+
+    <div class="confirmation-actions">
+      <a href="{{ url_for('index') }}" class="btn-continue">Continue Shopping →</a>
+      <button onclick="window.print()" class="btn-print">🖨️ Print Receipt</button>
+    </div>
+  </div>
+</section>
+{% endblock %}
