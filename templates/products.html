@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Fairway Golf | Products{% endblock %}
+{% block title %}Budget Birdies | Products{% endblock %}
 
 {% block content %}
 <section class="products-hero">
@@ -22,10 +22,12 @@
         {% if product.badge %}
         <div class="product-badge {{ product.badge|lower|replace(' ', '-') }}">{{ product.badge }}</div>
         {% endif %}
-        <div class="product-image">{{ product.emoji }}</div>
-        <h3 class="product-title">{{ product.name }}</h3>
-        <p class="product-desc">{{ product.desc }}</p>
-        <div class="product-price">₱{{ product.price|format_currency }}</div>
+        <a href="{{ url_for('product_detail', product_id=product.id) }}" class="product-link">
+          <div class="product-image">{{ product.emoji }}</div>
+          <h3 class="product-title">{{ product.name }}</h3>
+          <p class="product-desc">{{ product.desc[:80] }}...</p>
+          <div class="product-price">₱{{ product.price|format_currency }}</div>
+        </a>
         {% if product.inStock %}
         <form method="POST" action="{{ url_for('add_to_cart') }}">
           <input type="hidden" name="product_id" value="{{ product.id }}">
