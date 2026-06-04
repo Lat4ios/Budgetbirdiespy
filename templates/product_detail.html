@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} | Budget Birdies{% endblock %}
+
+{% block content %}
+<section class="product-detail-section">
+  <div class="container">
+    <div class="breadcrumbs">
+      <a href="{{ url_for('index') }}">Home</a> / 
+      <a href="{{ url_for('products') }}">Products</a> / 
+      <span>{{ product.name }}</span>
+    </div>
+
+    <div class="product-detail-grid">
+      <div class="product-detail-image">
+        <div class="main-image">
+          <span class="product-emoji-large">{{ product.emoji }}</span>
+        </div>
+      </div>
+
+      <div class="product-detail-info">
+        {% if product.badge %}
+        <div class="product-badge-detail {{ product.badge|lower|replace(' ', '-') }}">{{ product.badge }}</div>
+        {% endif %}
+        
+        <h1 class="product-detail-title">{{ product.name }}</h1>
+        <div class="product-detail-price">₱{{ product.price|format_currency }}</div>
+        
+        <div class="product-detail-description">
+          <h3>Description</h3>
+          <p>{{ product.desc }}</p>
+        </div>
+
+        {% if product.inStock %}
+        <form method="POST" action="{{ url_for('add_to_cart') }}" class="add-to-cart-form">
+          <input type="hidden" name="product_id" value="{{ product.id }}">
+          <div class="quantity-selector-detail">
+            <label for="quantity">Quantity:</label>
+            <input type="number" name="quantity" id="quantity" value="1" min="1" max="10">
+          </div>
+          <button type="submit" class="btn-add-to-cart">Add to Cart →</button>
+        </form>
+        {% else %}
+        <button class="btn-out-of-stock" disabled>Out of Stock</button>
+        {% endif %}
+        
+        <div class="product-meta">
+          <div class="meta-item">
+            <span class="meta-label">Category:</span>
+            <span class="meta-value">Golf Equipment</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Availability:</span>
+            <span class="meta-value {% if product.inStock %}in-stock{% else %}out-of-stock{% endif %}">
+              {% if product.inStock %}In Stock{% else %}Out of Stock{% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if related_products %}
+    <div class="related-products">
+      <h2 class="section-title">You May Also Like</h2>
+      <div class="products-grid">
+        {% for related in related_products %}
+        <div class="product-card">
+          {% if related.badge %}
+          <div class="product-badge {{ related.badge|lower|replace(' ', '-') }}">{{ related.badge }}</div>
+          {% endif %}
+          <a href="{{ url_for('product_detail', product_id=related.id) }}" class="product-link">
+            <div class="product-image">{{ related.emoji }}</div>
+            <h3 class="product-title">{{ related.name }}</h3>
+            <p class="product-desc">{{ related.desc[:60] }}...</p>
+            <div class="product-price">₱{{ related.price|format_currency }}</div>
+          </a>
+          <form method="POST" action="{{ url_for('add_to_cart') }}">
+            <input type="hidden" name="product_id" value="{{ related.id }}">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn-add">Add to Cart</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
