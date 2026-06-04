@@ -10,30 +10,22 @@ app.secret_key = 'golf-store-secret-key-2025'
 app.permanent_session_lifetime = timedelta(days=7)
 
 # ==================== PERSISTENT STORAGE SETUP ====================
-# This ensures your data survives restarts and sleeps on Render
 
-# Determine if running on Render or locally
 if os.environ.get('RENDER'):
-    # Running on Render - use persistent directory
     DATA_DIR = '/opt/render/project/data'
 else:
-    # Running locally - use local data folder
     DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
-# Create directory if it doesn't exist
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Set data file paths
 PRODUCTS_FILE = os.path.join(DATA_DIR, 'products.json')
 CART_FILE = os.path.join(DATA_DIR, 'carts.json')
 
-# Admin credentials
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'golfadmin123'
 
-# ==================== INITIALIZE DATA FILES ====================
+# ==================== INITIALIZE DATA ====================
 
-# Initialize products.json if it doesn't exist
 def init_data_file():
     if not os.path.exists(PRODUCTS_FILE):
         initial_data = {
@@ -98,13 +90,11 @@ def get_site_settings():
 # ==================== PERSISTENT CART FUNCTIONS ====================
 
 def get_user_id():
-    """Get or create a unique user ID that persists"""
     if 'user_id' not in session:
         session['user_id'] = str(uuid.uuid4())
     return session['user_id']
 
 def save_cart_to_file(user_id, cart):
-    """Save cart to persistent file storage"""
     carts = {}
     if os.path.exists(CART_FILE):
         try:
@@ -117,7 +107,6 @@ def save_cart_to_file(user_id, cart):
         json.dump(carts, f, indent=2)
 
 def load_cart_from_file(user_id):
-    """Load cart from persistent file storage"""
     if os.path.exists(CART_FILE):
         try:
             with open(CART_FILE, 'r', encoding='utf-8') as f:
@@ -127,7 +116,7 @@ def load_cart_from_file(user_id):
             return {}
     return {}
 
-# ==================== CUSTOM JINJA FILTERS ====================
+# ==================== JINJA FILTERS ====================
 
 @app.template_filter('format_currency')
 def format_currency(value):
@@ -135,8 +124,6 @@ def format_currency(value):
         return f"{int(value):,}"
     except (ValueError, TypeError):
         return str(value)
-
-# ==================== CONTEXT PROCESSOR ====================
 
 @app.context_processor
 def inject_settings():
@@ -165,44 +152,45 @@ def products():
     products = get_products()
     return render_template('products.html', products=products)
 
+@app.route('/product/<int:product_id>')
+def product_detail(product_id):
+    product = get_product_by_id(product_id)
+    if not product:
+        return redirect(url_for('products'))
+    products = get_products()
+    related_products = [p for p in products if p['id'] != product_id][:3]
+    return render_template('product_detail.html', product=product, related_products=related_products)
+
 @app.route('/add-to-cart', methods=['POST'])
 def add_to_cart():
     product_id = int(request.form.get('product_id'))
     quantity = int(request.form.get('quantity', 1))
-    
     user_id = get_user_id()
     cart = load_cart_from_file(user_id)
     cart[str(product_id)] = cart.get(str(product_id), 0) + quantity
     save_cart_to_file(user_id, cart)
-    
     return redirect(request.referrer or url_for('products'))
 
 @app.route('/update-cart', methods=['POST'])
 def update_cart():
     product_id = str(request.form.get('product_id'))
     quantity = int(request.form.get('quantity', 0))
-    
     user_id = get_user_id()
     cart = load_cart_from_file(user_id)
-    
     if quantity <= 0:
         cart.pop(product_id, None)
     else:
         cart[product_id] = quantity
-    
     save_cart_to_file(user_id, cart)
-    
     return redirect(url_for('cart'))
 
 @app.route('/remove-from-cart', methods=['POST'])
 def remove_from_cart():
     product_id = str(request.form.get('product_id'))
-    
     user_id = get_user_id()
     cart = load_cart_from_file(user_id)
     cart.pop(product_id, None)
     save_cart_to_file(user_id, cart)
-    
     return redirect(url_for('cart'))
 
 @app.route('/cart')
@@ -211,18 +199,12 @@ def cart():
     cart = load_cart_from_file(user_id)
     cart_items = []
     total = 0
-    
     for product_id, quantity in cart.items():
         product = get_product_by_id(int(product_id))
         if product and product.get('inStock', True):
             item_total = product["price"] * quantity
             total += item_total
-            cart_items.append({
-                "product": product,
-                "quantity": quantity,
-                "item_total": item_total
-            })
-    
+            cart_items.append({"product": product, "quantity": quantity, "item_total": item_total})
     return render_template('cart.html', cart_items=cart_items, total=total)
 
 @app.route('/checkout')
@@ -231,21 +213,14 @@ def checkout():
     cart = load_cart_from_file(user_id)
     cart_items = []
     total = 0
-    
     for product_id, quantity in cart.items():
         product = get_product_by_id(int(product_id))
         if product and product.get('inStock', True):
             item_total = product["price"] * quantity
             total += item_total
-            cart_items.append({
-                "product": product,
-                "quantity": quantity,
-                "item_total": item_total
-            })
-    
+            cart_items.append({"product": product, "quantity": quantity, "item_total": item_total})
     if total == 0:
         return redirect(url_for('cart'))
-    
     return render_template('checkout.html', cart_items=cart_items, total=total)
 
 @app.route('/place-order', methods=['POST'])
@@ -254,19 +229,12 @@ def place_order():
     cart = load_cart_from_file(user_id)
     order_items = []
     total = 0
-    
     for product_id, quantity in cart.items():
         product = get_product_by_id(int(product_id))
         if product:
             item_total = product["price"] * quantity
             total += item_total
-            order_items.append({
-                "name": product["name"],
-                "price": product["price"],
-                "quantity": quantity,
-                "item_total": item_total
-            })
-    
+            order_items.append({"name": product["name"], "price": product["price"], "quantity": quantity, "item_total": item_total})
     order = {
         "order_number": f"ORD-{datetime.now().strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6].upper()}",
         "full_name": request.form.get('full_name', ''),
@@ -281,38 +249,28 @@ def place_order():
         "items": order_items,
         "total": total
     }
-    
     session['last_order'] = order
-    session.modified = True
-    
-    # Clear the cart after order
     save_cart_to_file(user_id, {})
-    
     return redirect(url_for('confirmation'))
 
 @app.route('/confirmation')
 def confirmation():
     order = session.get('last_order', {})
-    
     if 'items' not in order or not isinstance(order['items'], list):
         order['items'] = []
-    
     if not order.get('order_number'):
         order['order_number'] = 'ORD-NEW'
         order['total'] = 0
-    
     return render_template('confirmation.html', order=order)
 
 @app.route('/api/cart-count')
 def cart_count():
     user_id = get_user_id()
     cart = load_cart_from_file(user_id)
-    count = sum(cart.values())
-    return jsonify({"count": count})
+    return jsonify({"count": sum(cart.values())})
 
 @app.route('/api/health')
 def health():
-    """Health check endpoint for uptime monitoring"""
     return jsonify({"status": "healthy", "timestamp": datetime.now().isoformat()})
 
 # ==================== ADMIN ROUTES ====================
@@ -322,14 +280,12 @@ def admin_login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
             flash('Logged in successfully!', 'success')
             return redirect(url_for('admin_dashboard'))
         else:
             flash('Invalid credentials!', 'error')
-    
     return render_template('admin/login.html')
 
 @app.route('/admin/logout')
@@ -342,14 +298,11 @@ def admin_logout():
 @admin_required
 def admin_dashboard():
     data = load_data()
-    products = data['products']
-    features = data['features']
-    
     stats = {
-        'total_products': len(products),
-        'total_features': len(features),
-        'out_of_stock': sum(1 for p in products if not p.get('inStock', True)),
-        'total_value': sum(p['price'] for p in products)
+        'total_products': len(data['products']),
+        'total_features': len(data['features']),
+        'out_of_stock': sum(1 for p in data['products'] if not p.get('inStock', True)),
+        'total_value': sum(p['price'] for p in data['products'])
     }
     return render_template('admin/dashboard.html', stats=stats)
 
@@ -364,9 +317,7 @@ def admin_products():
 def admin_add_product():
     data = load_data()
     products = data['products']
-    
     new_id = max([p['id'] for p in products]) + 1 if products else 1
-    
     new_product = {
         "id": new_id,
         "name": request.form.get('name'),
@@ -376,7 +327,6 @@ def admin_add_product():
         "badge": request.form.get('badge', ''),
         "inStock": request.form.get('inStock') == 'on'
     }
-    
     products.append(new_product)
     data['products'] = products
     save_data(data)
@@ -388,7 +338,6 @@ def admin_add_product():
 def admin_edit_product(product_id):
     data = load_data()
     products = data['products']
-    
     for product in products:
         if product['id'] == product_id:
             product['name'] = request.form.get('name')
@@ -398,7 +347,6 @@ def admin_edit_product(product_id):
             product['badge'] = request.form.get('badge', '')
             product['inStock'] = request.form.get('inStock') == 'on'
             break
-    
     data['products'] = products
     save_data(data)
     flash('Product updated successfully!', 'success')
@@ -424,14 +372,12 @@ def admin_features():
 def admin_edit_feature(feature_id):
     data = load_data()
     features = data['features']
-    
     for feature in features:
         if feature['id'] == feature_id:
             feature['title'] = request.form.get('title')
             feature['description'] = request.form.get('description')
             feature['icon'] = request.form.get('icon')
             break
-    
     data['features'] = features
     save_data(data)
     flash('Feature updated successfully!', 'success')
@@ -441,7 +387,6 @@ def admin_edit_feature(feature_id):
 @admin_required
 def admin_settings():
     data = load_data()
-    
     if request.method == 'POST':
         data['site_settings'] = {
             "hero_title": request.form.get('hero_title'),
@@ -455,25 +400,7 @@ def admin_settings():
         save_data(data)
         flash('Settings updated successfully!', 'success')
         return redirect(url_for('admin_settings'))
-    
     return render_template('admin/settings.html', settings=data['site_settings'])
-
-# ==================== DEBUG ROUTE ====================
-
-@app.route('/debug-session')
-def debug_session():
-    """Debug endpoint to check persistent storage"""
-    user_id = get_user_id()
-    cart = load_cart_from_file(user_id)
-    return jsonify({
-        "user_id": user_id,
-        "cart": cart,
-        "data_dir": DATA_DIR,
-        "products_file_exists": os.path.exists(PRODUCTS_FILE),
-        "cart_file_exists": os.path.exists(CART_FILE)
-    })
-
-# ==================== PRODUCTION SERVER ====================
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
